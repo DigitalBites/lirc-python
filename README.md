@@ -3,6 +3,8 @@ lirc-python
 
 Python wrapper for LIRC calls, based on https://github.com/slimjim777/web-irsend
 
+Now with enhanced error handling, accessor methods and other riggor.
+
 ## Usage
 
 Here are some example calls:
