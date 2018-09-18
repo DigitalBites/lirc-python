@@ -1,6 +1,7 @@
 import sys
 import subprocess
-
+from collections import namedtuple
+import json
 
 class Lirc(object):
     """Parses the lircd.conf file and can send remote commands through irsend.
@@ -72,16 +73,43 @@ class Lirc(object):
     	"""Send single call to IR LED."""
     	cmd_output = ""
     	
-    	print "Lirc::send_once : irsend command: ",['irsend', 'SEND_ONCE', device_id, message]
+    	print "Lirc::send_once : irsend command: ",['irsend', '-d', '/var/run/lirc/lircd' , 'SEND_ONCE', device_id, message]
     	
     	try:
-    		cmd_output = subprocess.check_output(['irsend', 'SEND_ONCE', device_id, message], stderr=subprocess.STDOUT)
+    		cmd_output = subprocess.check_output(['irsend', '-d', '/var/run/lirc/lircd', 'SEND_ONCE', device_id, message], stderr=subprocess.STDOUT)
     		print "Lirc::send_once : CMD_OK: ",cmd_output
     	except subprocess.CalledProcessError as e:
     		print "Lirc::send_once : CPE_ERR:", e.returncode, e.output
     	except OSError as e:
     		print "Lirc::send_once : OS_ERR", e.errno, e.strerror
-		    
+
+    def send_multi(self, device_id, message):
+        cmd_output = ""
+
+        try:
+            msg_data = json.loads(message)
+        except ValueError, e:
+            print "Unable to parse json in message body"
+            return
+        if 'tx_cnt' not in msg_data:
+            print "missing tx_cnt in json message data"
+            return
+        if 'tx_msg' not in msg_data:
+            print "missing tx_msg in json message data"
+            return
+
+        cmd = ['irsend', '-d', '/var/run/lirc/lircd', '--count='+str(msg_data['tx_cnt']), 'SEND_ONCE', device_id , msg_data['tx_msg'] ]
+        print "Lirc:send_multi : irsend command ",cmd
+
+	try:
+    	    cmd_output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+    	    print "Lirc::send_once : CMD_OK: ",cmd_output
+    	except subprocess.CalledProcessError as e:
+    		print "Lirc::send_once : CPE_ERR:", e.returncode, e.output
+    	except OSError as e:
+    		print "Lirc::send_once : OS_ERR", e.errno, e.strerror
+
+	    
     def send_once_old(self, device_id, message):
         """Send single call to IR LED... With ZERO error checking."""
         subprocess.call(['irsend', 'SEND_ONCE', device_id, message])
